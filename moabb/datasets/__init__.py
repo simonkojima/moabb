@@ -71,6 +71,7 @@ from .fake import FakeDataset, FakeVirtualRealityDataset
 from .gigadb import Cho2017
 from .hinss2021 import Hinss2021
 from .huebner_llp import Huebner2017, Huebner2018
+from .kojima2025 import Kojima2025
 from .Lee2019 import Lee2019_ERP, Lee2019_MI, Lee2019_SSVEP
 from .liu2024 import Liu2024
 from .mpi_mi import MunichMI  # noqa: F401
@@ -93,7 +94,6 @@ from .upper_limb import Ofner2017
 from .utils import _init_dataset
 from .Weibo2014 import Weibo2014
 from .Zhou2016 import Zhou2016
-from .kojima2025 import Kojima2025
 
 
 # Call this last in order to make sure the dataset list, dict are populated with

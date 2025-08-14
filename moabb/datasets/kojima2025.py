@@ -1,19 +1,13 @@
 """
 URL PATH:
-
-check the following note for development
-https://github.com/NeuroTechX/moabb/blob/master/CONTRIBUTING.md
-
 """
 
-import json
 import os
 import re
 import string
 from pathlib import Path
 
 import mne
-from tqdm import tqdm
 
 from moabb.datasets import download as dl
 
@@ -48,7 +42,7 @@ class _Kojima2025Base(BaseDataset):
             self.subject_list,
             sessions_per_subject=1,
             events=dict(Target=1, NonTarget=0),
-            code=f"Kojima2025",
+            code="Kojima2025",
             interval=[-0.5, 1.2],
             paradigm="p300",
             doi="10.7910/DVN/1UJDV6",
