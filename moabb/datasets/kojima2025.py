@@ -1,7 +1,3 @@
-"""
-URL PATH:
-"""
-
 import os
 import re
 import string
@@ -17,16 +13,117 @@ from .base import BaseDataset
 _manifest_link = "https://dataverse.harvard.edu/api/datasets/export"
 _api_base_url = "https://dataverse.harvard.edu/api/access/datafile/"
 
+_events_mappings = {
+    "A": ["1", "101"],
+    "B": ["2", "102"],
+    "C": ["3", "103"],
+    "D": ["4", "104"],
+    "E": ["5", "105"],
+    "F": ["6", "106"],
+    "G": ["7", "107"],
+    "H": ["8", "108"],
+    "I": ["9", "109"],
+    "J": ["10", "110"],
+    "K": ["11", "111"],
+    "L": ["12", "112"],
+    "M": ["13", "113"],
+    "N": ["14", "114"],
+    "O": ["15", "115"],
+    "P": ["16", "116"],
+    "Q": ["17", "117"],
+    "R": ["18", "118"],
+    "S": ["19", "119"],
+    "T": ["20", "120"],
+    "U": ["21", "121"],
+    "V": ["22", "122"],
+    "W": ["23", "123"],
+    "X": ["24", "124"],
+    "Y": ["25", "125"],
+    "Z": ["26", "126"],
+    "SPACE": ["27", "127"],  # low
+    "PERIOD": ["28", "128"],  # low
+    "COMMA": ["29", "129"],  # mid
+    "DELETE": ["30", "130"],  # low
+}
+
 
 def _extract_run_number(path):
     match = re.search(r"run-(\d+)", path.name)
     return int(match.group(1)) if match else -1
 
 
-class _Kojima2025Base(BaseDataset):
-    """
-    Parent class of Kojima2025
-    Should not be instantiated.
+class Kojima2025(BaseDataset):
+    """Class for Kojima2024B_2stream dataset management. P300 dataset.
+
+    **Dataset description**
+
+    This dataset [1]_ originates from a study investigating a four-class auditory BCI
+    based on auditory stream segregation (ASME-BCI) [2]_.
+
+    In the experiment, participants focused on one of four auditory streams, leveraging
+    auditory stream segregation to selectively attend to stimuli in the target stream.
+    Each stream contained a two-stimulus oddball sequence composed of one deviant
+    stimulus and one standard stimulus.
+
+    The current class corresponds to the "ASME-4stream" condition described in [2]_.
+    For the "ASME-2stream" condition, see :class:`Kojima2024B_2stream`.
+
+    The sequence below illustrates an example trial. For instance, when D3 is the target
+    stimulus, the participant attended to Stream3 and selectively listened for D3.
+    In this case, D3 is the target, and D1, D2, and D4 are considered non-target stimuli.
+
+    .. code-block:: text
+
+        Stream4  -------- S4 -------- S4 -------- D4 -------- S4 -------- S4 --
+        Stream3  ----- S3 -------- S3 -------- S3 -------- D3 -------- S3 -----
+        Stream2  -- S2 -------- S2 -------- D2 -------- S2 -------- S2 --------
+        Stream1  S1 -------- D1 -------- S1 -------- S1 -------- S1 -----------
+
+    Each participant completed 1 session consisting of 6 runs.
+    Each run included 4 trials, each with a different target stimulus.
+    In each trial, all deviant stimuli (D1--D4) were presented 15 times.
+
+    Recording Detailes:
+        - EEG signals were recorded using a BrainAmp system (Brain Products, Germany)
+          at a sampling rate of 1000 Hz.
+
+        - Data were collected in Tokyo, Japan, where the power line frequency is 50 Hz.
+
+        - EEG was recorded from 64 scalp electrodes according to the international 10--20 system:
+          Fp1, Fp2, AF7, AF3, AFz, AF4, AF8, F7, F5, F3, F1, Fz, F2, F4, F6, F8,
+          FT9, FT7, FC5, FC3, FC1, FCz, FC2, FC4, FC6, FT8, FT10, T7, C5, C3, C1,
+          Cz, C2, C4, C6, T8, TP9, TP7, CP5, CP3, CP1, CPz, CP2, CP4, CP6, TP8,
+          TP10, P7, P5, P3, P1, Pz, P2, P4, P6, P8, PO7, PO3, POz, PO4, PO8,
+          O1, Oz, O2
+
+          EEG signals were referenced to the right mastoid and grounded to the left mastoid.
+
+        - EOG was recorded using 2 electrodes (vEOG and hEOG), placed above/below and
+          lateral to one eye.
+
+    Parameters
+    ----------
+
+    keep_trial_structure : bool, default=False
+        In MOABB, all classification tasks are performed as binary classification problems for P300 datasets.
+        If you want to perform 4-class classification for each trial, set ``keep_trial_structure=True``.
+
+        Note that this is only compatible with the :meth:`base.BaseDataset.get_data` method.
+        It cannot be used with :class:`moabb.paradigms.base.BaseParadigm` or :class:`moabb.paradigms.P300`.
+        To make it compatible with these, you need to provide an appropriate ``process_pipelines`` and ``postprocess_pipeline``
+        argument to the :meth:`moabb.paradigms.base.BaseProcessing.get_data`,
+        :meth:`moabb.evaluations.base.BaseEvaluation.evaluate` or
+        :meth:`moabb.evaluations.base.BaseEvaluation.process` etc...
+
+    References
+    ----------
+
+    .. [1] Kojima, S. (2024).
+        Replication Data for: Four-class ASME BCI: investigation of the feasibility and comparison of two strategies for multiclassing.
+        Harvard Dataverse, V1. DOI: https://doi.org/10.7910/DVN/1UJDV6
+    .. [2] Kojima, S. & Kanoh, S. (2024).
+        Four-class ASME BCI: investigation of the feasibility and comparison of two strategies for multiclassing.
+        Frontiers in Human Neuroscience 18:1461960. DOI: https://doi.org/10.3389/fnhum.2024.1461960
     """
 
     def __init__(
@@ -117,39 +214,28 @@ class _Kojima2025Base(BaseDataset):
 
                 events, event_id = mne.events_from_annotations(raw)
 
+                """
                 bv_to_marker_mapping = {}
                 for key in list(event_id.keys()):
                     bv_to_marker_mapping[key] = str(int(key.split("/")[1][1:]))
 
                 raw.annotations.rename(bv_to_marker_mapping)
-
                 events, event_id = mne.events_from_annotations(raw)
+                """
+
                 samples, markers = tm.markers_from_events(events, event_id)
 
-                event_names = {
-                    "D1": ["101", "111"],
-                    "D2": ["102", "112"],
-                    "D3": ["103", "113"],
-                    "D4": ["104", "114"],
-                    "S1": ["1"],
-                    "S2": ["2"],
-                }
-
-                if self.task == "4stream":
-                    event_names["S3"] = ["3"]
-                    event_names["S4"] = ["4"]
-
-                markers = tm.add_event_names(markers, event_names)
-                markers = tm.add_tag(markers, f"task:{self.task}")
+                markers = tm.add_event_names(markers, _events_mappings)
+                markers = tm.add_tag(markers, f"task:{task}")
                 markers = tm.add_tag(markers, f"run:{run_id}")
-
-                markers = tm.split_trials(markers, trial=["201", "202", "203", "204"])
+                markers = tm.split_trials(
+                    markers, trial=[str(marker) for marker in range(201, 231)]
+                )
 
                 markers = tm.add_tag_to_markers(
                     markers,
-                    Target=["111", "112", "113", "114"],
-                    NonTarget=["101", "102", "103", "104"],
-                    Standard=["1", "2", "3", "4"],
+                    Target=[str(marker) for marker in range(101, 131)],
+                    NonTarget=[str(marker) for marker in range(1, 31)],
                 )
 
                 events, event_id = tm.events_from_markers(samples, markers)
@@ -164,28 +250,14 @@ class _Kojima2025Base(BaseDataset):
 
             else:
 
-                print(raw)
-
                 events, event_id = mne.events_from_annotations(raw)
-                print(event_id)
 
                 annotations_mapping = {}
                 for key, value in event_id.items():
-                    if (len(key) == 3) and (key[0] == "1"):
+                    if (int(key) >= 101) and (int(key) <= 130):
                         annotations_mapping[key] = "Target"
-
-                """
-                annotations_mapping = {
-                    "Stimulus/S111": "Target",
-                    "Stimulus/S112": "Target",
-                    "Stimulus/S113": "Target",
-                    "Stimulus/S114": "Target",
-                    "Stimulus/S101": "NonTarget",
-                    "Stimulus/S102": "NonTarget",
-                    "Stimulus/S103": "NonTarget",
-                    "Stimulus/S104": "NonTarget",
-                }
-                """
+                    if (int(key) >= 1) and (int(key) <= 30):
+                        annotations_mapping[key] = "NonTarget"
 
                 raw.annotations.rename(annotations_mapping)
 
@@ -303,83 +375,3 @@ class _Kojima2025Base(BaseDataset):
         """
 
         return path
-
-
-class Kojima2025(_Kojima2025Base):
-    """Class for Kojima2024B_2stream dataset management. P300 dataset.
-
-    **Dataset description**
-
-    This dataset [1]_ originates from a study investigating a four-class auditory BCI
-    based on auditory stream segregation (ASME-BCI) [2]_.
-
-    In the experiment, participants focused on one of four auditory streams, leveraging
-    auditory stream segregation to selectively attend to stimuli in the target stream.
-    Each stream contained a two-stimulus oddball sequence composed of one deviant
-    stimulus and one standard stimulus.
-
-    The current class corresponds to the "ASME-4stream" condition described in [2]_.
-    For the "ASME-2stream" condition, see :class:`Kojima2024B_2stream`.
-
-    The sequence below illustrates an example trial. For instance, when D3 is the target
-    stimulus, the participant attended to Stream3 and selectively listened for D3.
-    In this case, D3 is the target, and D1, D2, and D4 are considered non-target stimuli.
-
-    .. code-block:: text
-
-        Stream4  -------- S4 -------- S4 -------- D4 -------- S4 -------- S4 --
-        Stream3  ----- S3 -------- S3 -------- S3 -------- D3 -------- S3 -----
-        Stream2  -- S2 -------- S2 -------- D2 -------- S2 -------- S2 --------
-        Stream1  S1 -------- D1 -------- S1 -------- S1 -------- S1 -----------
-
-    Each participant completed 1 session consisting of 6 runs.
-    Each run included 4 trials, each with a different target stimulus.
-    In each trial, all deviant stimuli (D1--D4) were presented 15 times.
-
-    Recording Detailes:
-        - EEG signals were recorded using a BrainAmp system (Brain Products, Germany)
-          at a sampling rate of 1000 Hz.
-
-        - Data were collected in Tokyo, Japan, where the power line frequency is 50 Hz.
-
-        - EEG was recorded from 64 scalp electrodes according to the international 10--20 system:
-          Fp1, Fp2, AF7, AF3, AFz, AF4, AF8, F7, F5, F3, F1, Fz, F2, F4, F6, F8,
-          FT9, FT7, FC5, FC3, FC1, FCz, FC2, FC4, FC6, FT8, FT10, T7, C5, C3, C1,
-          Cz, C2, C4, C6, T8, TP9, TP7, CP5, CP3, CP1, CPz, CP2, CP4, CP6, TP8,
-          TP10, P7, P5, P3, P1, Pz, P2, P4, P6, P8, PO7, PO3, POz, PO4, PO8,
-          O1, Oz, O2
-
-          EEG signals were referenced to the right mastoid and grounded to the left mastoid.
-
-        - EOG was recorded using 2 electrodes (vEOG and hEOG), placed above/below and
-          lateral to one eye.
-
-    Parameters
-    ----------
-
-    keep_trial_structure : bool, default=False
-        In MOABB, all classification tasks are performed as binary classification problems for P300 datasets.
-        If you want to perform 4-class classification for each trial, set ``keep_trial_structure=True``.
-
-        Note that this is only compatible with the :meth:`base.BaseDataset.get_data` method.
-        It cannot be used with :class:`moabb.paradigms.base.BaseParadigm` or :class:`moabb.paradigms.P300`.
-        To make it compatible with these, you need to provide an appropriate ``process_pipelines`` and ``postprocess_pipeline``
-        argument to the :meth:`moabb.paradigms.base.BaseProcessing.get_data`,
-        :meth:`moabb.evaluations.base.BaseEvaluation.evaluate` or
-        :meth:`moabb.evaluations.base.BaseEvaluation.process` etc...
-
-    References
-    ----------
-
-    .. [1] Kojima, S. (2024).
-        Replication Data for: Four-class ASME BCI: investigation of the feasibility and comparison of two strategies for multiclassing.
-        Harvard Dataverse, V1. DOI: https://doi.org/10.7910/DVN/1UJDV6
-    .. [2] Kojima, S. & Kanoh, S. (2024).
-        Four-class ASME BCI: investigation of the feasibility and comparison of two strategies for multiclassing.
-        Frontiers in Human Neuroscience 18:1461960. DOI: https://doi.org/10.3389/fnhum.2024.1461960
-    """
-
-    def __init__(self, keep_trial_structure=False):
-        super().__init__(
-            keep_trial_structure=keep_trial_structure,
-        )
