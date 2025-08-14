@@ -93,6 +93,7 @@ from .upper_limb import Ofner2017
 from .utils import _init_dataset
 from .Weibo2014 import Weibo2014
 from .Zhou2016 import Zhou2016
+from .kojima2025 import Kojima2025
 
 
 # Call this last in order to make sure the dataset list, dict are populated with
