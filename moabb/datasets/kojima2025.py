@@ -134,6 +134,7 @@ class Kojima2025(BaseDataset):
         self.subject_list = list(range(1, 11))
         self.n_channels = 64
         self.keep_trial_structure = keep_trial_structure
+        self.info = dict(soa=0.2)
 
         super().__init__(
             self.subject_list,
